@@ -15,6 +15,10 @@
  */
 package com.linzj.utils;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
+import java.io.IOException;
 import android.app.Activity;
 import android.widget.TextView;
 import android.os.Bundle;
@@ -129,9 +133,15 @@ public class Gif2MP4 extends Activity
             Toast.makeText(this, "some one send a interrupt exception", 
                     Toast.LENGTH_SHORT).show();
         }
-        Log.e(TAG, String.format("Error code: %d", (exitcode)));
-        Toast.makeText(this, String.format("Error code: %d", (exitcode)),
-                Toast.LENGTH_SHORT).show();
+        try {
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+            String errString = String.format("Error code: %d, error: %s", (exitcode), errorReader.readLine());
+            Log.e(TAG, errString);
+            Toast.makeText(this, errString,
+                    Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return exitcode;
     }
 
@@ -153,13 +163,21 @@ public class Gif2MP4 extends Activity
                                  + " -r 24 -c:v libx264 -pix_fmt yuv420p -y "
                                  + "-vf scale=640:-1,pad=640:480:0:60:black " + outputPath;
                     int exitcode = startAndWaitProcess(cmd);
-                    if (exitcode != 0) {
-                        // try rotate
-                        cmd = getLibDir() + "/libffmpeg.so -i " + path
-                                     + " -r 24 -c:v libx264 -pix_fmt yuv420p -y "
-                                     + "-vf transpose=1,scale=640:-1,pad=640:480:0:60:black " + outputPath;
-                        startAndWaitProcess(cmd);
+                    if (exitcode == 0) {
+                        return;
                     }
+                    // try rotate
+                    cmd = getLibDir() + "/libffmpeg.so -i " + path
+                                 + " -r 24 -c:v libx264 -pix_fmt yuv420p -y "
+                                 + "-vf transpose=1,scale=640:-1,pad=640:480:0:60:black " + outputPath;
+                    exitcode = startAndWaitProcess(cmd);
+                    if (exitcode == 0) {
+                        return;
+                    }
+                    cmd = getLibDir() + "/libffmpeg.so -i " + path
+                                 + " -r 24 -c:v libx264 -pix_fmt yuv420p -y "
+                                 + "-vf scale=640:480 " + outputPath;
+                    startAndWaitProcess(cmd);
                 }
                 break;
         }
