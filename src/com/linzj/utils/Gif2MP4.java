@@ -15,6 +15,7 @@
  */
 package com.linzj.utils;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
@@ -145,6 +146,13 @@ public class Gif2MP4 extends Activity
         return exitcode;
     }
 
+    private void scanOutputFile(String outputPath) {
+        Intent intent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        Uri fileUri = Uri.fromFile(new File(outputPath));
+        intent.setData(fileUri);
+        sendBroadcast(intent);
+    }
+
     private void myOnActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
             case FILE_SELECT_CODE:
@@ -164,6 +172,7 @@ public class Gif2MP4 extends Activity
                                  + "-vf scale=640:-1,pad=640:480:0:60:black " + outputPath;
                     int exitcode = startAndWaitProcess(cmd);
                     if (exitcode == 0) {
+                        scanOutputFile(outputPath);
                         return;
                     }
                     // try rotate
@@ -172,12 +181,17 @@ public class Gif2MP4 extends Activity
                                  + "-vf transpose=1,scale=640:-1,pad=640:480:0:60:black " + outputPath;
                     exitcode = startAndWaitProcess(cmd);
                     if (exitcode == 0) {
+                        scanOutputFile(outputPath);
                         return;
                     }
                     cmd = getLibDir() + "/libffmpeg.so -i " + path
                                  + " -r 24 -c:v libx264 -pix_fmt yuv420p -y "
                                  + "-vf scale=640:480 " + outputPath;
-                    startAndWaitProcess(cmd);
+                    exitcode = startAndWaitProcess(cmd);
+                    if (exitcode == 0) {
+                        scanOutputFile(outputPath);
+                        return;
+                    }
                 }
                 break;
         }
